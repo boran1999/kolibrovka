@@ -1,0 +1,29 @@
+void setup() {
+Serial.begin(9600);
+}
+
+void execute_command(char command)
+{
+if (command == 'c')
+{
+int val1 = analogRead(A5);
+int val2 = analogRead(A0);
+Serial.print(val1);
+Serial.print(' ');
+Serial.println(val2);
+}
+else
+{
+Serial.println("");
+}
+}
+
+void loop() {
+while (Serial.available() > 0)
+{
+byte in = Serial.read();
+Serial.print("#command:");
+Serial.println((char)in);
+execute_command((char)in);
+}
+}
