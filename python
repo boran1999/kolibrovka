@@ -1,0 +1,71 @@
+import serial
+import time
+import matplotlib.pyplot as plt
+
+
+ser = serial.Serial('COM10', 9600)
+
+commands = {'c': 'both sensors read'}
+
+sensor_1 = []
+sensor_2 = []
+
+def wait_for_data(ser):
+    timeout = 0
+    while not ser.in_waiting and timeout < 1:
+        time.sleep(0.01)
+        timeout += 0.01
+        
+def get_sensors_data(ser):
+    while True:
+        ser.write(bytes('c', 'utf8'))
+        wait_for_data(ser)
+        while ser.in_waiting:
+            line = ser.readline()
+            line = line.decode('utf8')
+            line = line.strip()
+            if line.startswith('#'):
+                print(line)
+                continue
+            if not line:
+                continue
+            vals = [int(val) for val in line.split(' ')]
+            if len(vals) != 2:
+                continue
+            return vals
+
+colib_const = [0 for _ in range(1024)]
+k = 0
+
+while (k < 300):
+    vals = get_sensors_data(ser)
+    sensor_1.append(vals[0])
+    sensor_2.append(vals[1])
+    if colib_const[sensor_1[-1]] == 0:
+        colib_const[sensor_1[-1]] = sensor_2[-1] - sensor_1[-1]
+        k += 1
+    print(k)
+    
+k = 0
+
+sensor_1 = []
+sensor_1_colib = []
+sensor_2 = []
+while k < 500:
+    vals = get_sensors_data(ser)
+    if colib_const[vals[0]] == 0:
+        continue
+    sensor_1_colib.append(vals[0] + colib_const[vals[0]])
+    sensor_1.append(vals[0])
+    sensor_2.append(vals[1])
+    k += 1
+    
+    
+plt.figure()
+plt.plot(range(len(sensor_1)), sensor_1)
+plt.plot(range(len(sensor_2)), sensor_2)
+plt.plot(range(len(sensor_1_colib)), sensor_1_colib)
+
+#plt.plot(range(len(colib_const)), colib_const)
+plt.show()
+ser.close()
